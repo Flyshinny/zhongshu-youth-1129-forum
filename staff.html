@@ -60,7 +60,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     document.getElementById("swAM").href = "#k=" + K + "&s=am"; document.getElementById("swPM").href = "#k=" + K + "&s=pm";
     document.getElementById("swAM").className = S==="am" ? "on" : ""; document.getElementById("swPM").className = S==="pm" ? "on" : "";
     document.documentElement.style.setProperty("--hd", S==="pm" ? "#2E6B55" : "#1D4262");
-    document.getElementById("h1").firstChild.nodeValue = S==="pm" ? "下午論壇報到（11:15 起在各論壇樓層）" : "上午報到（8 樓主場）";
+    document.getElementById("h1").firstChild.nodeValue = S==="pm" ? "下午論壇報到（各論壇樓層）" : "上午報到（8 樓主場）";
   }
   setS();
   window.addEventListener("hashchange", function(){ setS(); sel = null; render(); });
