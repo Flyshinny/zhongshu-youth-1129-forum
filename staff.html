@@ -95,19 +95,18 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   // 依論壇／組別整理名冊
   var G = F.map(function(){ return {}; }), ORDER = F.map(function(){ return []; });
   P.forEach(function(p){ var g = G[p[2]]; if (!g[p[3]]){ g[p[3]] = []; ORDER[p[2]].push(p[3]); } g[p[3]].push(p); });
-  var cur = 0, sel = null, AM = {}, PM = {}, done = AM, ROWS = [], SEEN = null;
+  var cur = 0, sel = null, AM = {}, PM = {}, done = AM, ROWS = [], SEEN = {};
   var PIDX = {}; P.forEach(function(p){ PIDX[pid(p)] = p; });
   // 最新報到：顯示目前頁面（上午／論壇）最近 5 筆
   var LOADED = false;
   function renderRecent(){
     if (!LOADED) { document.getElementById("recent").innerHTML = "<div class='none'>讀取最新報到中…</div>"; return; }
     var list = ROWS.filter(function(r){ return /#pm$/.test(r[0]) === (S==="pm"); }).slice(-5).reverse();
-    var first = SEEN === null; if (first) SEEN = {};
     var h = "<h3><span>🆕 最新"+(S==="pm"?"論壇":"上午")+"報到</span><span>共 "+ROWS.filter(function(r){ return /#pm$/.test(r[0]) === (S==="pm"); }).length+" 筆</span></h3>";
     if (!list.length) h += "<div class='none'>還沒有人報到</div>";
     list.forEach(function(r){
       var id = String(r[0]), p = PIDX[id.replace(/#pm$/,"")], key = id + "@" + r[1];
-      var isNew = !first && !SEEN[key]; SEEN[key] = 1;
+      var isNew = !SEEN[key]; SEEN[key] = 1;
       if (!p) return;
       var f = F[p[2]], where = p[3]==="工作組" ? p[1] : f.n.slice(0,2)+"・第"+p[3]+"組";
       h += "<div class='r"+(isNew?" new":"")+"'><b>"+esc(p[0])+"</b><span class='u'>"+esc(p[3]==="工作組"?"工作人員":p[1])+"・"+esc(where)+"</span><span class='t'>✓ "+esc(r[1])+"</span></div>";
@@ -169,7 +168,9 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j.ok){ document.getElementById("upd").textContent = "密碼不正確，請確認看板網址"; return; }
-        AM = {}; PM = {}; ROWS = j.rows; LOADED = true;
+        AM = {}; PM = {}; ROWS = j.rows;
+        if (!LOADED) ROWS.forEach(function(r){ SEEN[String(r[0]) + "@" + r[1]] = 1; });   // 第一次打開時的舊資料不標新
+        LOADED = true;
         j.rows.forEach(function(r){ var id = String(r[0]); if (/#pm$/.test(id)) PM[id.slice(0,-3)] = r[1]; else AM[id] = r[1]; });
         document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　" + (S==="am" ? "點單位看名單" : "點組別看名單");
         render();
