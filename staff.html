@@ -27,6 +27,11 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .recent .r.new{animation:hl 2.5s ease-out}
 @keyframes hl{from{background:#fff1c9}to{background:#fff}}
 .recent .none{padding:10px 14px;color:var(--sub);font-size:14px}
+.ov{grid-column:1/-1;background:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 2px 8px rgba(29,66,98,.12);border-left:8px solid var(--oc);cursor:pointer}
+.ov .oh{display:flex;align-items:baseline;gap:8px}.ov .oh b{font-size:18px;color:var(--oc)}.ov .oh span{font-size:13px;color:var(--sub)}
+.ov .on{font-size:15px;color:var(--sub);margin-top:2px}.ov .on b{font-size:30px;color:var(--ink)}.ov .on em{font-style:normal;font-weight:800;color:var(--oc)}
+.ov .ob{height:8px;border-radius:8px;background:#e8edf1;overflow:hidden;margin:6px 0}.ov .ob i{display:block;height:100%;background:var(--oc)}
+.ov .os{font-size:13px;color:var(--sub);line-height:1.6}
 #mode a{color:#ffd98a;font-weight:800}
 .sw a.on{background:#fff;color:var(--hd,var(--navy));opacity:1}
 .row .fix{margin-left:auto;border:2px solid var(--amber);background:#fff7e8;color:#8A5410;font:inherit;font-size:13px;font-weight:800;border-radius:999px;padding:3px 10px;cursor:pointer}
@@ -112,7 +117,12 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   // 依論壇／組別整理名冊
   var G = F.map(function(){ return {}; }), ORDER = F.map(function(){ return []; });
   P.forEach(function(p){ var g = G[p[2]]; if (!g[p[3]]){ g[p[3]] = []; ORDER[p[2]].push(p[3]); } g[p[3]].push(p); });
-  var cur = 0, sel = null, AM = {}, PM = {}, done = AM, ROWS = [], SEEN = {};
+  var FP = F.map(function(f, i){ return P.filter(function(p){ return p[2]===i && p[3]!=="工作組"; }); });
+  var FALL = P.filter(function(p){ return p[3]!=="工作組"; }), WALL = P.filter(function(p){ return p[3]==="工作組"; });
+  var FORD = ORDER.map(function(o){ return o.filter(function(g){ return g!=="工作組"; }); });
+  var WG = {}; WALL.forEach(function(p){ (WG[p[1]] = WG[p[1]] || []).push(p); });
+  var WORD = Object.keys(WG).sort(function(a,b){ return WG[b].length - WG[a].length; });
+  var cur = -1, sel = null, AM = {}, PM = {}, done = AM, ROWS = [], SEEN = {};
   var PIDX = {}; P.forEach(function(p, i){ PIDX[pid(p)] = p; p.i = i; });
   // 最新報到：顯示目前頁面（上午／論壇）最近 5 筆
   var LOADED = false;
@@ -160,21 +170,40 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     document.getElementById("bar").style.width = (100*n/total).toFixed(1) + "%";
     renderRecent();
     if (S === "am") { renderUnits(); return; }
-    document.getElementById("tabs").innerHTML = F.map(function(f, i){
-      var all = P.filter(function(p){ return p[2]===i; }), c = all.filter(function(p){ return done[pid(p)]; }).length;
-      return "<button data-t='"+i+"' class='"+(i===cur?"on":"")+"' style='background:"+COL[f.c]+"'>"+f.n+" "+f.f+"　"+c+"/"+all.length+"</button>";
+    // 下午論壇：分頁＝全部論壇(-1)／高峰(0)／人才(1)／開創(2)／工作組(3)；論壇分頁不含工作組
+    function cnt(a){ return a.filter(function(p){ return done[pid(p)]; }).length; }
+    var TABS = [{t:-1, n:"📊 全部論壇", c:"#4E5E6B", a:FALL}].concat(F.map(function(f, i){ return {t:i, n:f.n+" "+f.f, c:COL[f.c], a:FP[i]}; }))
+               .concat([{t:3, n:"🛠 工作組", c:"#8A5410", a:WALL}]);
+    document.getElementById("tabs").innerHTML = TABS.map(function(x){
+      return "<button data-t='"+x.t+"' class='"+(x.t===cur?"on":"")+"' style='background:"+x.c+"'>"+x.n+"　"+cnt(x.a)+"/"+x.a.length+"</button>";
     }).join("");
-    document.getElementById("grid").innerHTML = ORDER[cur].map(function(g){
-      var m = G[cur][g], c = m.filter(function(p){ return done[pid(p)]; }).length;
-      return "<div class='g"+(c===m.length?" full":"")+(g===sel?" on":"")+"' data-g='"+esc(g)+"'><b>"+(g==="工作組"?"工作組":"第"+g+"組")+"</b><span>"+c+"</span><small>/"+m.length+"</small></div>";
+    var GR = document.getElementById("grid"), L = document.getElementById("list");
+    if (cur === -1) {                                   // 全部論壇總覽
+      GR.innerHTML = F.map(function(f, i){
+        var gs = FORD[i].map(function(g){ var m = G[i][g]; return {g:g, c:cnt(m), n:m.length}; });
+        var c = cnt(FP[i]), n = FP[i].length, full = gs.filter(function(x){ return x.c===x.n; }).length;
+        var miss = gs.filter(function(x){ return x.c<x.n; }).sort(function(a,b){ return (b.n-b.c)-(a.n-a.c); }).slice(0,3)
+                     .map(function(x){ return "第"+x.g+"組 "+x.c+"/"+x.n; }).join("、");
+        return "<div class='ov' data-ov='"+i+"' style='--oc:"+COL[f.c]+"'><div class='oh'><b>"+f.n+"</b><span>"+f.f+"</span></div>"+
+          "<div class='on'><b>"+c+"</b>／"+n+" 人　<em>"+(n?Math.round(100*c/n):0)+"%</em></div>"+
+          "<div class='ob'><i style='width:"+(n?100*c/n:0).toFixed(1)+"%'></i></div>"+
+          "<div class='os'>已到齊 "+full+"／"+gs.length+" 組"+(miss?"<br>未到最多："+miss:"")+"</div></div>";
+      }).join("") + "<div class='ov' data-ov='3' style='--oc:#8A5410'><div class='oh'><b>工作組</b><span>各組工作人員</span></div>"+
+          "<div class='on'><b>"+cnt(WALL)+"</b>／"+WALL.length+" 人</div><div class='ob'><i style='width:"+(100*cnt(WALL)/WALL.length).toFixed(1)+"%'></i></div></div>";
+      L.innerHTML = ""; return;
+    }
+    var keys = cur===3 ? WORD : FORD[cur], grp = function(g){ return cur===3 ? WG[g] : G[cur][g]; };
+    GR.innerHTML = keys.map(function(g){
+      var m = grp(g), c = cnt(m);
+      return "<div class='g"+(c===m.length?" full":"")+(g===sel?" on":"")+"' data-g='"+esc(g)+"'><b>"+(cur===3?esc(g):"第"+g+"組")+"</b><span>"+c+"</span><small>/"+m.length+"</small></div>";
     }).join("");
-    var L = document.getElementById("list");
-    if (sel == null || !G[cur][sel]) { L.innerHTML = ""; return; }
-    var m = G[cur][sel].slice().sort(function(a,b){ return (!!done[pid(a)]) - (!!done[pid(b)]); });
-    L.innerHTML = "<div class='list'><h2>"+F[cur].n+"・"+(sel==="工作組"?"工作組":"第"+sel+"組")+"（未到的排前面）</h2>"+
+    if (sel == null || !grp(sel)) { L.innerHTML = ""; return; }
+    var m = grp(sel).slice().sort(function(a,b){ return (!!done[pid(a)]) - (!!done[pid(b)]); });
+    L.innerHTML = "<div class='list'><h2>"+(cur===3 ? "工作組・"+esc(sel) : F[cur].n+"・第"+sel+"組")+"（未到的排前面）</h2>"+
       m.map(function(p){ var t = done[pid(p)];
-        var a = (S==="pm" && AM[pid(p)]) ? "<span class='am'>上午✓</span>" : "";
-        return "<div class='row "+(t?"yes":"no")+"'><span>"+esc(p[0])+"</span><span class='u'>"+esc(p[1])+"</span>"+((p[4]&1)?"<span class='lead'>組長</span>":"")+a+
+        var a = AM[pid(p)] ? "<span class='am'>上午✓</span>" : "";
+        var u = cur===3 ? F[p[2]].n.slice(0,2) : p[1];
+        return "<div class='row "+(t?"yes":"no")+"'><span>"+esc(p[0])+"</span><span class='u'>"+esc(u)+"</span>"+((p[4]&1)?"<span class='lead'>組長</span>":"")+a+
                (t?"":"<button class='fix' data-fix='"+p.i+"'>補登</button>")+"<span class='t'>"+(t?"✓ "+esc(t):"未到")+"</span></div>"; }).join("")+"</div>";
   }
   document.getElementById("tabs").addEventListener("click", function(e){ var t = e.target.getAttribute("data-t"); if (t!=null){ cur = +t; sel = null; render(); } });
@@ -208,7 +237,9 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
       })
       .catch(function(){ btn.disabled = false; btn.textContent = "失敗，再按一次"; });
   });
-  document.getElementById("grid").addEventListener("click", function(e){ var el = e.target.closest(".g"); if (el){ sel = el.getAttribute("data-g"); render(); document.getElementById("list").scrollIntoView({behavior:"smooth"}); } });
+  document.getElementById("grid").addEventListener("click", function(e){
+    var ov = e.target.closest(".ov"); if (ov){ cur = +ov.getAttribute("data-ov"); sel = null; render(); return; }
+    var el = e.target.closest(".g"); if (el){ sel = el.getAttribute("data-g"); render(); document.getElementById("list").scrollIntoView({behavior:"smooth"}); } });
 
   function load(){
     fetch(GAS + "?action=list&k=" + encodeURIComponent(K) + (TEST?"&test=1":""))
