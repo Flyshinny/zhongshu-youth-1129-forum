@@ -20,6 +20,13 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .sw a{color:#fff;text-decoration:none;text-align:center;font-weight:800;font-size:15px;padding:7px 0;border-radius:9px;opacity:.75}
 .g .mini{height:5px;border-radius:5px;background:#e8edf1;margin-top:5px;overflow:hidden}.g .mini i{display:block;height:100%;background:var(--amber)}
 .g.full .mini i{background:var(--ok)}
+.recent{margin:12px 12px 0;background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(29,66,98,.12);overflow:hidden}
+.recent h3{margin:0;font-size:14px;padding:8px 14px;background:#f5efe2;color:var(--brown,#8A5410);display:flex;justify-content:space-between}
+.recent .r{display:flex;align-items:center;gap:8px;padding:7px 14px;border-top:1px solid #f0f0f0;font-size:15px}
+.recent .r .u{color:var(--sub);font-size:13px}.recent .r .t{margin-left:auto;font-weight:800;color:var(--ok)}
+.recent .r.new{animation:hl 2.5s ease-out}
+@keyframes hl{from{background:#fff1c9}to{background:#fff}}
+.recent .none{padding:10px 14px;color:var(--sub);font-size:14px}
 #mode a{color:#ffd98a;font-weight:800}
 .sw a.on{background:#fff;color:var(--hd,var(--navy));opacity:1}
 .row .am{font-size:12px;color:var(--sub);margin-left:6px}
@@ -49,6 +56,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   <div class="upd" id="upd">讀取中…</div>
   <div class="upd" id="mode"></div>
 </header>
+<div class="recent" id="recent"></div>
 <div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
 <div id="list"></div>
@@ -87,7 +95,23 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   // 依論壇／組別整理名冊
   var G = F.map(function(){ return {}; }), ORDER = F.map(function(){ return []; });
   P.forEach(function(p){ var g = G[p[2]]; if (!g[p[3]]){ g[p[3]] = []; ORDER[p[2]].push(p[3]); } g[p[3]].push(p); });
-  var cur = 0, sel = null, AM = {}, PM = {}, done = AM;
+  var cur = 0, sel = null, AM = {}, PM = {}, done = AM, ROWS = [], SEEN = null;
+  var PIDX = {}; P.forEach(function(p){ PIDX[pid(p)] = p; });
+  // 最新報到：顯示目前頁面（上午／論壇）最近 5 筆
+  function renderRecent(){
+    var list = ROWS.filter(function(r){ return /#pm$/.test(r[0]) === (S==="pm"); }).slice(-5).reverse();
+    var first = SEEN === null; if (first) SEEN = {};
+    var h = "<h3><span>🆕 最新"+(S==="pm"?"論壇":"上午")+"報到</span><span>共 "+ROWS.filter(function(r){ return /#pm$/.test(r[0]) === (S==="pm"); }).length+" 筆</span></h3>";
+    if (!list.length) h += "<div class='none'>還沒有人報到</div>";
+    list.forEach(function(r){
+      var id = String(r[0]), p = PIDX[id.replace(/#pm$/,"")], key = id + "@" + r[1];
+      var isNew = !first && !SEEN[key]; SEEN[key] = 1;
+      if (!p) return;
+      var f = F[p[2]], where = p[3]==="工作組" ? p[1] : f.n.slice(0,2)+"・第"+p[3]+"組";
+      h += "<div class='r"+(isNew?" new":"")+"'><b>"+esc(p[0])+"</b><span class='u'>"+esc(p[3]==="工作組"?"工作人員":p[1])+"・"+esc(where)+"</span><span class='t'>✓ "+esc(r[1])+"</span></div>";
+    });
+    document.getElementById("recent").innerHTML = h;
+  }
   // 上午看板依「單位」整理（工作組的人歸到「工作人員」）
   function unitOf(p){ return p[3]==="工作組" ? "工作人員" : p[1]; }
   var UN = {}; P.forEach(function(p){ var u = unitOf(p); (UN[u] = UN[u] || []).push(p); });
@@ -116,6 +140,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     document.getElementById("n").textContent = n;
     document.getElementById("of").textContent = "／ " + total + " 人已報到";
     document.getElementById("bar").style.width = (100*n/total).toFixed(1) + "%";
+    renderRecent();
     if (S === "am") { renderUnits(); return; }
     document.getElementById("tabs").innerHTML = F.map(function(f, i){
       var all = P.filter(function(p){ return p[2]===i; }), c = all.filter(function(p){ return done[pid(p)]; }).length;
@@ -142,7 +167,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j.ok){ document.getElementById("upd").textContent = "密碼不正確，請確認看板網址"; return; }
-        AM = {}; PM = {};
+        AM = {}; PM = {}; ROWS = j.rows;
         j.rows.forEach(function(r){ var id = String(r[0]); if (/#pm$/.test(id)) PM[id.slice(0,-3)] = r[1]; else AM[id] = r[1]; });
         document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　" + (S==="am" ? "點單位看名單" : "點組別看名單");
         render();
