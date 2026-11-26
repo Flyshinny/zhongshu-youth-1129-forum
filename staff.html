@@ -18,6 +18,8 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .upd{font-size:12px;opacity:.75;margin-top:6px}
 .sw{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;margin-bottom:10px}
 .sw a{color:#fff;text-decoration:none;text-align:center;font-weight:800;font-size:15px;padding:7px 0;border-radius:9px;opacity:.75}
+.g .mini{height:5px;border-radius:5px;background:#e8edf1;margin-top:5px;overflow:hidden}.g .mini i{display:block;height:100%;background:var(--amber)}
+.g.full .mini i{background:var(--ok)}
 #mode a{color:#ffd98a;font-weight:800}
 .sw a.on{background:#fff;color:var(--hd,var(--navy));opacity:1}
 .row .am{font-size:12px;color:var(--sub);margin-left:6px}
@@ -86,6 +88,27 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   var G = F.map(function(){ return {}; }), ORDER = F.map(function(){ return []; });
   P.forEach(function(p){ var g = G[p[2]]; if (!g[p[3]]){ g[p[3]] = []; ORDER[p[2]].push(p[3]); } g[p[3]].push(p); });
   var cur = 0, sel = null, AM = {}, PM = {}, done = AM;
+  // 上午看板依「單位」整理（工作組的人歸到「工作人員」）
+  function unitOf(p){ return p[3]==="工作組" ? "工作人員" : p[1]; }
+  var UN = {}; P.forEach(function(p){ var u = unitOf(p); (UN[u] = UN[u] || []).push(p); });
+  var UORDER = Object.keys(UN).sort(function(a,b){ return (a==="工作人員") - (b==="工作人員") || UN[b].length - UN[a].length; });
+
+  function renderUnits(){
+    document.getElementById("tabs").innerHTML = "";
+    document.getElementById("grid").innerHTML = UORDER.map(function(u){
+      var m = UN[u], c = m.filter(function(p){ return done[pid(p)]; }).length;
+      return "<div class='g"+(c===m.length?" full":"")+(u===sel?" on":"")+"' data-g='"+esc(u)+"'><b>"+esc(u)+"</b><span>"+c+"</span><small>/"+m.length+"</small>"+
+             "<div class='mini'><i style='width:"+(100*c/m.length).toFixed(0)+"%'></i></div></div>";
+    }).join("");
+    var L = document.getElementById("list");
+    if (sel == null || !UN[sel]) { L.innerHTML = ""; return; }
+    var m = UN[sel].slice().sort(function(a,b){ return (!!done[pid(a)]) - (!!done[pid(b)]); });
+    L.innerHTML = "<div class='list'><h2>"+esc(sel)+"（未到的排前面）</h2>"+
+      m.map(function(p){ var t = done[pid(p)], f = F[p[2]];
+        var where = p[3]==="工作組" ? esc(p[1]) : f.n.slice(0,2)+"・第"+p[3]+"組";
+        return "<div class='row "+(t?"yes":"no")+"'><span>"+esc(p[0])+"</span><span class='u'>"+where+"</span>"+
+               "<span class='t'>"+(t?"✓ "+esc(t):"未到")+"</span></div>"; }).join("")+"</div>";
+  }
 
   function render(){
     done = S==="pm" ? PM : AM;
@@ -93,6 +116,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     document.getElementById("n").textContent = n;
     document.getElementById("of").textContent = "／ " + total + " 人已報到";
     document.getElementById("bar").style.width = (100*n/total).toFixed(1) + "%";
+    if (S === "am") { renderUnits(); return; }
     document.getElementById("tabs").innerHTML = F.map(function(f, i){
       var all = P.filter(function(p){ return p[2]===i; }), c = all.filter(function(p){ return done[pid(p)]; }).length;
       return "<button data-t='"+i+"' class='"+(i===cur?"on":"")+"' style='background:"+COL[f.c]+"'>"+f.n+" "+f.f+"　"+c+"/"+all.length+"</button>";
@@ -120,7 +144,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
         if (!j.ok){ document.getElementById("upd").textContent = "密碼不正確，請確認看板網址"; return; }
         AM = {}; PM = {};
         j.rows.forEach(function(r){ var id = String(r[0]); if (/#pm$/.test(id)) PM[id.slice(0,-3)] = r[1]; else AM[id] = r[1]; });
-        document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　點組別看名單";
+        document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　" + (S==="am" ? "點單位看名單" : "點組別看名單");
         render();
       })
       .catch(function(){ document.getElementById("upd").textContent = "連線失敗，30 秒後重試"; });
