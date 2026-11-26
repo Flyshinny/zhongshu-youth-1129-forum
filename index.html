@@ -223,10 +223,10 @@ header{text-align:center;position:relative}
     if (!ckOpen()) return "";
     var s = sess(), am = localStorage.getItem(ckKey(p,"am")), pm = localStorage.getItem(ckKey(p,"pm")), h = "";
     if (s === "am") {
-      h = am ? "<div class='ck done'>✓ 上午已報到 "+esc(am)+"</div>"
+      h = am ? "<div class='ck done'>✓ 主場已報到 "+esc(am)+"</div>"
              : "<button class='ck' data-ck='"+p.i+"' data-s='am'>點我報到</button>";
     } else {
-      if (am) h += "<div class='ck done small'>✓ 上午已報到 "+esc(am)+"</div>";
+      if (am) h += "<div class='ck done small'>✓ 主場已報到 "+esc(am)+"</div>";
       h += pm ? "<div class='ck done'>✓ 論壇已報到 "+esc(pm)+"</div>"
               : "<button class='ck pm' data-ck='"+p.i+"' data-s='pm'>點我報到</button>";
     }
@@ -236,7 +236,7 @@ header{text-align:center;position:relative}
     var p = P[+btn.getAttribute("data-ck")], f = F[p[2]], s = btn.getAttribute("data-s");
     btn.disabled = true; btn.textContent = "報到中…";
     fetch(GAS, {method:"POST", body: JSON.stringify({action:"checkin", id:rid(p, s), name:p[0], unit:p[1], forum:f.n,
-      floor: s==="pm" ? f.f+"（論壇報到）" : "8樓（上午報到）",
+      floor: s==="pm" ? f.f+"（論壇報到）" : "8樓（主場報到）",
       group: p[3]==="工作組" ? "工作組" : "第"+p[3]+"組", test:TEST})})
       .then(function(r){ return r.json(); })
       .then(function(j){

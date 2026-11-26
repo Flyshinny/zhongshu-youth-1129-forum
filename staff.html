@@ -65,7 +65,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 </head>
 <body>
 <header>
-  <div class="sw"><a id="swAM" href="#">☀️ 上午報到</a><a id="swPM" href="#">💬 下午論壇報到</a></div>
+  <div class="sw"><a id="swAM" href="#">🏛️ 主場報到</a><a id="swPM" href="#">💬 論壇報到</a></div>
   <h1 id="h1">11/29 報到看板<span id="tt"></span></h1>
   <div class="big"><b id="n">–</b><span id="of">／ – 人已報到</span></div>
   <div class="bar"><i id="bar" style="width:0"></i></div>
@@ -103,8 +103,8 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     document.getElementById("swAM").href = "#k=" + K + "&s=am"; document.getElementById("swPM").href = "#k=" + K + "&s=pm";
     document.getElementById("swAM").className = S==="am" ? "on" : ""; document.getElementById("swPM").className = S==="pm" ? "on" : "";
     document.documentElement.style.setProperty("--hd", S==="pm" ? "#2E6B55" : "#1D4262");
-    document.getElementById("h1").firstChild.nodeValue = S==="pm" ? "下午論壇報到（各論壇樓層）" : "上午報到（8 樓主場）";
-    document.getElementById("mode").innerHTML = AUTO ? "⏱ 依時間自動切換（11:15 切到論壇、14:30 切回上午）"
+    document.getElementById("h1").firstChild.nodeValue = S==="pm" ? "論壇報到（各論壇樓層）" : "主場報到（8 樓）";
+    document.getElementById("mode").innerHTML = AUTO ? "⏱ 依時間自動切換（11:15 切到論壇、14:30 切回主場）"
       : "✋ 手動檢視中　<a href='#k=" + K + "'>改回自動切換</a>";
   }
   setS();
@@ -129,7 +129,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   function renderRecent(){
     if (!LOADED) { document.getElementById("recent").innerHTML = "<div class='none'>讀取最新報到中…</div>"; return; }
     var list = ROWS.filter(function(r){ return /#pm$/.test(r[0]) === (S==="pm"); }).slice(-5).reverse();
-    var h = "<h3><span>🆕 最新"+(S==="pm"?"論壇":"上午")+"報到</span><span>共 "+ROWS.filter(function(r){ return /#pm$/.test(r[0]) === (S==="pm"); }).length+" 筆</span></h3>";
+    var h = "<h3><span>🆕 最新"+(S==="pm"?"論壇":"主場")+"報到</span><span>共 "+ROWS.filter(function(r){ return /#pm$/.test(r[0]) === (S==="pm"); }).length+" 筆</span></h3>";
     if (!list.length) h += "<div class='none'>還沒有人報到</div>";
     list.forEach(function(r){
       var id = String(r[0]), p = PIDX[id.replace(/#pm$/,"")], key = id + "@" + r[1];
@@ -201,7 +201,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     var m = grp(sel).slice().sort(function(a,b){ return (!!done[pid(a)]) - (!!done[pid(b)]); });
     L.innerHTML = "<div class='list'><h2>"+(cur===3 ? "工作組・"+esc(sel) : F[cur].n+"・第"+sel+"組")+"（未到的排前面）</h2>"+
       m.map(function(p){ var t = done[pid(p)];
-        var a = AM[pid(p)] ? "<span class='am'>上午✓</span>" : "";
+        var a = AM[pid(p)] ? "<span class='am'>主場✓</span>" : "";
         var u = cur===3 ? F[p[2]].n.slice(0,2) : p[1];
         return "<div class='row "+(t?"yes":"no")+"'><span>"+esc(p[0])+"</span><span class='u'>"+esc(u)+"</span>"+((p[4]&1)?"<span class='lead'>組長</span>":"")+a+
                (t?"":"<button class='fix' data-fix='"+p.i+"'>補登</button>")+"<span class='t'>"+(t?"✓ "+esc(t):"未到")+"</span></div>"; }).join("")+"</div>";
@@ -214,7 +214,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     FIXP = P[+b.getAttribute("data-fix")]; FIXS = S;
     var f = F[FIXP[2]], where = FIXP[3]==="工作組" ? "工作人員・"+FIXP[1] : f.n+"・第"+FIXP[3]+"組";
     document.getElementById("dw").innerHTML = "<b>"+esc(FIXP[0])+"</b>"+esc(FIXP[3]==="工作組"?"":FIXP[1]+"・")+esc(where)+
-      "<br>補登為 <em style='background:"+(FIXS==="pm"?"#2E6B55":"#1D4262")+"'>"+(FIXS==="pm"?"下午論壇報到":"上午報到")+"</em>";
+      "<br>補登為 <em style='background:"+(FIXS==="pm"?"#2E6B55":"#1D4262")+"'>"+(FIXS==="pm"?"論壇報到":"主場報到")+"</em>";
     document.getElementById("dYes").disabled = false; document.getElementById("dYes").textContent = "確定補登";
     document.getElementById("mask").classList.add("on");
   });
@@ -226,7 +226,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     var p = FIXP, s = FIXS, f = F[p[2]], btn = this, id = pid(p) + (s==="pm" ? "#pm" : "");
     btn.disabled = true; btn.textContent = "補登中…";
     fetch(GAS, {method:"POST", body: JSON.stringify({action:"checkin", id:id, name:p[0], unit:p[1], forum:f.n,
-      floor: s==="pm" ? f.f+"（論壇補登）" : "8樓（上午補登）", group: p[3]==="工作組" ? "工作組" : "第"+p[3]+"組", test:TEST})})
+      floor: s==="pm" ? f.f+"（論壇補登）" : "8樓（主場補登）", group: p[3]==="工作組" ? "工作組" : "第"+p[3]+"組", test:TEST})})
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j.ok) throw 0;
