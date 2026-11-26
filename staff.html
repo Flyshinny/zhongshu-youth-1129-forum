@@ -18,6 +18,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .upd{font-size:12px;opacity:.75;margin-top:6px}
 .sw{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;margin-bottom:10px}
 .sw a{color:#fff;text-decoration:none;text-align:center;font-weight:800;font-size:15px;padding:7px 0;border-radius:9px;opacity:.75}
+#mode a{color:#ffd98a;font-weight:800}
 .sw a.on{background:#fff;color:var(--hd,var(--navy));opacity:1}
 .row .am{font-size:12px;color:var(--sub);margin-left:6px}
 .tabs{display:flex;gap:6px;padding:12px 12px 0;flex-wrap:wrap}
@@ -44,6 +45,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   <div class="big"><b id="n">–</b><span id="of">／ – 人已報到</span></div>
   <div class="bar"><i id="bar" style="width:0"></i></div>
   <div class="upd" id="upd">讀取中…</div>
+  <div class="upd" id="mode"></div>
 </header>
 <div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
@@ -54,16 +56,29 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   var F = D.f, P = D.p, GAS = "https://script.google.com/macros/s/AKfycbzOuOQhiTAeQQUUeCzT0Ze0qCdCrCwGMckL9XiDljPgSxCSvUHuRdCBXRFL-fKpfZ4/exec";
   var COL = {blue:"var(--f1)", pink:"var(--f2)", green:"var(--f3)"};
   var K = (location.hash.match(/k=([^&]+)/)||[])[1], TEST = /[?&]test=1/.test(location.search);
-  var S = /[#&]s=pm/.test(location.hash) ? "pm" : "am";       // am＝上午 8 樓報到、pm＝下午論壇報到
+  // am＝上午 8 樓報到、pm＝下午論壇報到
+  // 網址沒指定 s= 時，依台灣時間（UTC+8）自動切換：11:15–14:30 顯示下午論壇，其餘顯示上午
+  function nowMin(){
+    var tm = TEST && location.search.match(/[?&]t=(\d{1,2}):?(\d{2})/);
+    if (tm) return (+tm[1])*60 + (+tm[2]);
+    var t = new Date(Date.now() + 8*3600e3); return t.getUTCHours()*60 + t.getUTCMinutes();
+  }
+  function autoS(){ var m = nowMin(); return (m>=675 && m<870) ? "pm" : "am"; }
+  var S = "am", AUTO = true;
   function setS(){
-    S = /[#&]s=pm/.test(location.hash) ? "pm" : "am";
+    var h = location.hash.match(/[#&]s=(am|pm)/);
+    AUTO = !h; S = h ? h[1] : autoS();
     document.getElementById("swAM").href = "#k=" + K + "&s=am"; document.getElementById("swPM").href = "#k=" + K + "&s=pm";
     document.getElementById("swAM").className = S==="am" ? "on" : ""; document.getElementById("swPM").className = S==="pm" ? "on" : "";
     document.documentElement.style.setProperty("--hd", S==="pm" ? "#2E6B55" : "#1D4262");
     document.getElementById("h1").firstChild.nodeValue = S==="pm" ? "下午論壇報到（各論壇樓層）" : "上午報到（8 樓主場）";
+    document.getElementById("mode").innerHTML = AUTO ? "⏱ 依時間自動切換（11:15 切到論壇、14:30 切回上午）"
+      : "✋ 手動檢視中　<a href='#k=" + K + "'>改回自動切換</a>";
   }
   setS();
   window.addEventListener("hashchange", function(){ setS(); sel = null; render(); });
+  // 自動模式下每 30 秒檢查時間，跨過 11:15／14:30 就自動換頁
+  setInterval(function(){ if (AUTO && autoS() !== S){ setS(); sel = null; render(); } }, 30000);
   if (TEST) document.getElementById("tt").innerHTML = "<span class='testtag'>測試資料</span>";
   function pid(p){ return p[2]+"-"+p[3]+"-"+p[0]+"-"+p[1]; }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]}); }
