@@ -152,7 +152,7 @@ header{text-align:center;position:relative}
   P.forEach(function(p, i){ p.k = norm(p[0]); p.i = i; });
 
   // ---- 報到 ----
-  var GAS = "";                                  // Google Apps Script 網址（未設定時不顯示報到）
+  var GAS = "https://script.google.com/macros/s/AKfycbzOuOQhiTAeQQUUeCzT0Ze0qCdCrCwGMckL9XiDljPgSxCSvUHuRdCBXRFL-fKpfZ4/exec";                                  // Google Apps Script 網址（未設定時不顯示報到）
   var TEST = /[?&]test=1/.test(location.search);        // ?test=1：任何時間都能測試，寫進「測試」工作表
   function pid(p){ return p[2]+"-"+p[3]+"-"+p[0]+"-"+p[1]; }
   function ckOpen(){                                    // 11/29（日）07:30–12:00（台灣時間）才開放
