@@ -4,18 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>報到看板｜11/29 論壇分組</title>
+<title>報到看板｜11/29 青年大會師</title>
 <link rel="icon" href="icon.png">
 <style>
 :root{--navy:#1D4262;--amber:#E2922A;--ink:#1F2F3D;--sub:#4E5E6B;--ok:#2e8b57;--f1:#1D4262;--f2:#A9505F;--f3:#2E6B55}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;background:#eef2f2;color:var(--ink)}
-header{background:var(--navy);color:#fff;padding:14px 16px 16px;position:sticky;top:0;z-index:5}
+header{background:var(--hd,var(--navy));color:#fff;padding:14px 16px 16px;position:sticky;top:0;z-index:5}
 header h1{margin:0;font-size:19px;letter-spacing:1px}
 .big{display:flex;align-items:baseline;gap:10px;margin-top:6px}
 .big b{font-size:40px;line-height:1}.big span{font-size:16px;opacity:.85}
 .bar{height:8px;border-radius:8px;background:rgba(255,255,255,.2);margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--amber)}
 .upd{font-size:12px;opacity:.75;margin-top:6px}
+.sw{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;margin-bottom:10px}
+.sw a{color:#fff;text-decoration:none;text-align:center;font-weight:800;font-size:15px;padding:7px 0;border-radius:9px;opacity:.75}
+.sw a.on{background:#fff;color:var(--hd,var(--navy));opacity:1}
+.row .am{font-size:12px;color:var(--sub);margin-left:6px}
 .tabs{display:flex;gap:6px;padding:12px 12px 0;flex-wrap:wrap}
 .tabs button{border:0;font:inherit;font-size:15px;font-weight:800;color:#fff;border-radius:999px;padding:7px 12px;opacity:.45;cursor:pointer}
 .tabs button.on{opacity:1}
@@ -35,7 +39,8 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 </head>
 <body>
 <header>
-  <h1>11/29 論壇報到看板<span id="tt"></span></h1>
+  <div class="sw"><a id="swAM" href="#">☀️ 上午報到</a><a id="swPM" href="#">💬 下午論壇報到</a></div>
+  <h1 id="h1">11/29 報到看板<span id="tt"></span></h1>
   <div class="big"><b id="n">–</b><span id="of">／ – 人已報到</span></div>
   <div class="bar"><i id="bar" style="width:0"></i></div>
   <div class="upd" id="upd">讀取中…</div>
@@ -49,15 +54,26 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   var F = D.f, P = D.p, GAS = "https://script.google.com/macros/s/AKfycbzOuOQhiTAeQQUUeCzT0Ze0qCdCrCwGMckL9XiDljPgSxCSvUHuRdCBXRFL-fKpfZ4/exec";
   var COL = {blue:"var(--f1)", pink:"var(--f2)", green:"var(--f3)"};
   var K = (location.hash.match(/k=([^&]+)/)||[])[1], TEST = /[?&]test=1/.test(location.search);
+  var S = /[#&]s=pm/.test(location.hash) ? "pm" : "am";       // am＝上午 8 樓報到、pm＝下午論壇報到
+  function setS(){
+    S = /[#&]s=pm/.test(location.hash) ? "pm" : "am";
+    document.getElementById("swAM").href = "#k=" + K + "&s=am"; document.getElementById("swPM").href = "#k=" + K + "&s=pm";
+    document.getElementById("swAM").className = S==="am" ? "on" : ""; document.getElementById("swPM").className = S==="pm" ? "on" : "";
+    document.documentElement.style.setProperty("--hd", S==="pm" ? "#2E6B55" : "#1D4262");
+    document.getElementById("h1").firstChild.nodeValue = S==="pm" ? "下午論壇報到（11:15 起在各論壇樓層）" : "上午報到（8 樓主場）";
+  }
+  setS();
+  window.addEventListener("hashchange", function(){ setS(); sel = null; render(); });
   if (TEST) document.getElementById("tt").innerHTML = "<span class='testtag'>測試資料</span>";
   function pid(p){ return p[2]+"-"+p[3]+"-"+p[0]+"-"+p[1]; }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]}); }
   // 依論壇／組別整理名冊
   var G = F.map(function(){ return {}; }), ORDER = F.map(function(){ return []; });
   P.forEach(function(p){ var g = G[p[2]]; if (!g[p[3]]){ g[p[3]] = []; ORDER[p[2]].push(p[3]); } g[p[3]].push(p); });
-  var cur = 0, sel = null, done = {};
+  var cur = 0, sel = null, AM = {}, PM = {}, done = AM;
 
   function render(){
+    done = S==="pm" ? PM : AM;
     var total = P.length, n = P.filter(function(p){ return done[pid(p)]; }).length;
     document.getElementById("n").textContent = n;
     document.getElementById("of").textContent = "／ " + total + " 人已報到";
@@ -75,7 +91,8 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     var m = G[cur][sel].slice().sort(function(a,b){ return (!!done[pid(a)]) - (!!done[pid(b)]); });
     L.innerHTML = "<div class='list'><h2>"+F[cur].n+"・"+(sel==="工作組"?"工作組":"第"+sel+"組")+"（未到的排前面）</h2>"+
       m.map(function(p){ var t = done[pid(p)];
-        return "<div class='row "+(t?"yes":"no")+"'><span>"+esc(p[0])+"</span><span class='u'>"+esc(p[1])+"</span>"+((p[4]&1)?"<span class='lead'>組長</span>":"")+
+        var a = (S==="pm" && AM[pid(p)]) ? "<span class='am'>上午✓</span>" : "";
+        return "<div class='row "+(t?"yes":"no")+"'><span>"+esc(p[0])+"</span><span class='u'>"+esc(p[1])+"</span>"+((p[4]&1)?"<span class='lead'>組長</span>":"")+a+
                "<span class='t'>"+(t?"✓ "+esc(t):"未到")+"</span></div>"; }).join("")+"</div>";
   }
   document.getElementById("tabs").addEventListener("click", function(e){ var t = e.target.getAttribute("data-t"); if (t!=null){ cur = +t; sel = null; render(); } });
@@ -86,7 +103,8 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j.ok){ document.getElementById("upd").textContent = "密碼不正確，請確認看板網址"; return; }
-        done = {}; j.rows.forEach(function(r){ done[r[0]] = r[1]; });
+        AM = {}; PM = {};
+        j.rows.forEach(function(r){ var id = String(r[0]); if (/#pm$/.test(id)) PM[id.slice(0,-3)] = r[1]; else AM[id] = r[1]; });
         document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　點組別看名單";
         render();
       })
