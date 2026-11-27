@@ -13,7 +13,10 @@ body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft 
 header{background:var(--navy);color:#fff;padding:14px 16px 14px;position:sticky;top:0;z-index:5}
 header h1{margin:0;font-size:19px;letter-spacing:1px}
 .tot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.tot div{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 10px}
+.tot div{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;cursor:pointer;border:2px solid transparent}
+.tot div.on{background:#fff;color:var(--navy);border-color:#ffd98a}.tot div.on em{color:var(--brown)}
+.tot div.dim{opacity:.5}
+.mode{font-size:13px;margin-top:8px;color:#ffd98a;font-weight:800}
 .tot small{display:block;font-size:13px;opacity:.85;font-weight:700}
 .tot b{font-size:28px}.tot span{font-size:14px;opacity:.85}.tot em{font-style:normal;font-weight:900;color:#ffd98a;margin-left:6px;font-size:17px}
 .upd{font-size:12px;opacity:.75;margin-top:8px}
@@ -45,6 +48,10 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .lead{font-size:11px;font-weight:800;background:#ffe9b8;color:var(--brown);border-radius:999px;padding:1px 7px}
 .msg{padding:40px 20px;text-align:center;color:var(--sub);line-height:1.8}
 .testtag{background:#c0392b;color:#fff;font-size:12px;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:3px}
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;padding:10px 14px;background:#fbfaf6}
+.dg>div{background:#fff;border-radius:10px;padding:7px 10px;box-shadow:0 1px 4px rgba(29,66,98,.1);font-size:13px;cursor:pointer}
+.dg b{display:block;font-size:15px;color:var(--navy)}
+.dg .m{grid-template-columns:32px 1fr 74px;margin-top:3px;font-size:12px}.dg .m .v em{font-size:13px}
 .note{font-size:12px;color:var(--sub);padding:0 14px 8px;line-height:1.6}
 </style>
 </head>
@@ -52,9 +59,10 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 <header>
   <h1>11/29 各單位報到情況<span id="tt"></span></h1>
   <div class="tot">
-    <div><small>🏛️ 主場報到（8 樓）</small><b id="an">–</b><span id="at">／–</span><em id="ar"></em></div>
-    <div><small>💬 論壇報到（各樓層）</small><b id="pn">–</b><span id="pt">／–</span><em id="pr"></em></div>
+    <div id="bAM" data-md="am"><small>🏛️ 主場報到（8 樓）</small><b id="an">–</b><span id="at">／–</span><em id="ar"></em></div>
+    <div id="bPM" data-md="pm"><small>💬 論壇報到（各樓層）</small><b id="pn">–</b><span id="pt">／–</span><em id="pr"></em></div>
   </div>
+  <div class="mode" id="mode">👆 點上面兩格，可只看主場或只看論壇報到</div>
   <div class="upd" id="upd">讀取中…</div>
 </header>
 <div class="chips" id="chips"></div>
@@ -75,7 +83,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   function whereOf(p){ return isW(p) ? p[1] : isDT(p) ? "點傳師" : F[p[2]].n.slice(0,2)+"・第"+p[3]+"組"; }
   var UN = {}; P.forEach(function(p){ var u = unitOf(p); (UN[u] = UN[u] || []).push(p); });
   var UORDER = Object.keys(UN).sort(function(a,b){ return (a==="工作人員") - (b==="工作人員") || UN[b].length - UN[a].length; });
-  var AM = {}, PM = {}, LOADED = false;
+  var AM = {}, PM = {}, LOADED = false, MD = "";   // MD：""＝兩種都看、"am"＝只看主場、"pm"＝只看論壇
   function hu(){ var m = location.hash.match(/[#&]u=([^&]+)/); return m ? decodeURIComponent(m[1]) : ""; }
   var sel = hu() || null;
   function pct(a, b){ return b ? Math.round(100*a/b) : 0; }
@@ -96,30 +104,44 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     var only = hu();
     document.getElementById("chips").innerHTML = only ? "" : ["全部"].concat(UORDER).map(function(u){
       return "<button data-c='"+esc(u)+"' class='"+((u==="全部"&&!sel)||u===sel?"on":"")+"'>"+esc(u)+"</button>"; }).join("");
+    document.getElementById("bAM").className = MD==="am" ? "on" : MD ? "dim" : "";
+    document.getElementById("bPM").className = MD==="pm" ? "on" : MD ? "dim" : "";
+    document.getElementById("mode").textContent = MD==="am" ? "🏛️ 只看主場報到（再點一次回到全部）" : MD==="pm" ? "💬 只看論壇報到，不含點傳師與工作人員（再點一次回到全部）" : "👆 點上面兩格，可只看主場或只看論壇報到";
     var show = only ? [only] : (sel ? [sel] : UORDER);
+    if (MD==="pm") show = show.filter(function(u){ return UN[u] && stat(UN[u]).pn; });
     document.getElementById("cards").innerHTML = show.filter(function(u){ return UN[u]; }).map(function(u){
       var s = stat(UN[u]);
-      return "<div class='u"+(u===sel?" on":"")+(s.a===s.n?" full":"")+"' data-u='"+esc(u)+"'><h3>"+esc(u)+"<span>應到 "+s.n+" 人</span></h3>"+
-        meter("am", "主場", s.a, s.n) + (s.pn ? meter("pm", "論壇", s.p, s.pn) : "") + "</div>";
+      return "<div class='u"+(u===sel?" on":"")+(s.a===s.n?" full":"")+"' data-u='"+esc(u)+"'><h3>"+esc(u)+"<span>應到 "+(MD==="pm"?s.pn:s.n)+" 人</span></h3>"+
+        (MD!=="pm" ? meter("am", "主場", s.a, s.n) : "") + (MD!=="am" && s.pn ? meter("pm", "論壇", s.p, s.pn) : "") + "</div>";
     }).join("") || "<div class='msg'>找不到單位「"+esc(only)+"」</div>";
     var L = document.getElementById("list");
     if (!sel || !UN[sel]) { L.innerHTML = ""; return; }
     var m = UN[sel].slice();
-    var secs = [["點傳師", m.filter(isDT)]].concat(F.filter(function(f){ return f.n!=="點傳師"; }).map(function(f){
-      var i = F.indexOf(f); return [f.n+"（"+f.f+"）", m.filter(function(p){ return p[2]===i && !isDT(p) && !isW(p); })]; }))
-      .concat([["工作人員", m.filter(isW)]]);
-    function rank(p){ return (AM[pid(p)]?1:0) + (PM[pid(p)]?1:0); }
-    var h = "<div class='list'><h2>"+esc(sel)+"　名單<small>未到的排前面</small></h2>";
+    if (MD==="pm") m = m.filter(function(p){ return !isDT(p) && !isW(p); });
+    var secs;
+    if (sel==="全真") {                                   // 全真：依「區」分段
+      var DS = {}; m.forEach(function(p){ var d = p[1].split("・")[1] || "未分區"; (DS[d] = DS[d] || []).push(p); });
+      secs = Object.keys(DS).sort(function(x, y){ return (x==="未分區") - (y==="未分區") || DS[y].length - DS[x].length; }).map(function(d){ return [d, DS[d], 1]; });
+    } else {
+      secs = [["點傳師", m.filter(isDT)]].concat(F.filter(function(f){ return f.n!=="點傳師"; }).map(function(f){
+        var i = F.indexOf(f); return [f.n+"（"+f.f+"）", m.filter(function(p){ return p[2]===i && !isDT(p) && !isW(p); })]; }))
+        .concat([["工作人員", m.filter(isW)]]);
+    }
+    function key(p){ return MD==="am" ? !!AM[pid(p)] : MD==="pm" ? !!PM[pid(p)] : (AM[pid(p)]?1:0) + (PM[pid(p)]?1:0); }
+    var h = "<div class='list'><h2>"+esc(sel)+"　名單"+(MD==="am"?"・主場":MD==="pm"?"・論壇":"")+"<small>未到的排前面</small></h2>";
+    if (sel==="全真") h += "<div class='dg'>" + secs.map(function(x){ var st = stat(x[1]);
+        return "<div data-d='"+esc(x[0])+"'><b>"+esc(x[0])+"</b>"+(MD!=="pm"?meter("am","主場",st.a,st.n):"")+(MD!=="am"&&st.pn?meter("pm","論壇",st.p,st.pn):"")+"</div>"; }).join("") + "</div>";
     secs.forEach(function(x){
       if (!x[1].length) return;
-      var a = x[1].slice().sort(function(p, q){ return rank(p) - rank(q) || String(p[3]).localeCompare(String(q[3]), "zh", {numeric:true}); });
-      h += "<h4>"+esc(x[0])+"　"+x[1].length+" 人</h4>" + a.map(function(p){
+      var a = x[1].slice().sort(function(p, q){ return key(p) - key(q) || isDT(q) - isDT(p) || String(p[3]).localeCompare(String(q[3]), "zh", {numeric:true}); });
+      var st = stat(x[1]), cnt = MD==="pm" ? "論壇 "+st.p+"/"+st.pn : MD==="am" ? "主場 "+st.a+"/"+st.n : "主場 "+st.a+"/"+st.n+(st.pn?"・論壇 "+st.p+"/"+st.pn:"");
+      h += "<h4 id='d_"+esc(x[0])+"'>"+esc(x[0])+"　"+x[1].length+" 人　"+cnt+"</h4>" + a.map(function(p){
         var am = AM[pid(p)], pm = PM[pid(p)], noPM = isDT(p) || isW(p);
-        var dist = p[1].indexOf("・")>0 ? p[1].split("・")[1]+"・" : "";
+        var where = x[2] ? (isDT(p) ? "點傳師" : whereOf(p)) : whereOf(p);
         return "<div class='row'><span>"+esc(p[0])+"</span>"+((p[4]&1)?"<span class='lead'>組長</span>":"")+
-          "<span class='w'>"+esc(dist+whereOf(p))+"</span><span class='s'>"+
-          "<span class='"+(am?"y":"")+"'>主場 "+(am?"✓ "+esc(am):"未到")+"</span>"+
-          (noPM ? "" : "<span class='"+(pm?"y":"")+"'>論壇 "+(pm?"✓ "+esc(pm):"未到")+"</span>")+"</span></div>";
+          "<span class='w'>"+esc(where)+"</span><span class='s'>"+
+          (MD!=="pm" ? "<span class='"+(am?"y":"")+"'>主場 "+(am?"✓ "+esc(am):"未到")+"</span>" : "")+
+          (noPM || MD==="am" ? "" : "<span class='"+(pm?"y":"")+"'>論壇 "+(pm?"✓ "+esc(pm):"未到")+"</span>")+"</span></div>";
       }).join("");
     });
     L.innerHTML = h + "</div>";
@@ -130,6 +152,12 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     var el = e.target.closest(".u"); if (!el) return; var u = el.getAttribute("data-u");
     sel = (sel===u && !hu()) ? null : u; render();
     if (sel) document.getElementById("list").scrollIntoView({behavior:"smooth"}); });
+  document.querySelector(".tot").addEventListener("click", function(e){
+    var el = e.target.closest("[data-md]"); if (!el) return; var v = el.getAttribute("data-md");
+    MD = MD===v ? "" : v; render(); });
+  document.getElementById("list").addEventListener("click", function(e){
+    var el = e.target.closest("[data-d]"); if (!el) return;
+    var t = document.getElementById("d_" + el.getAttribute("data-d")); if (t) t.scrollIntoView({behavior:"smooth"}); });
   window.addEventListener("hashchange", function(){ sel = hu() || null; render(); });
   function load(){
     fetch(GAS + "?action=list&k=" + encodeURIComponent(K||"") + (TEST?"&test=1":""))
