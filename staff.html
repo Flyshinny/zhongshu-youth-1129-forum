@@ -269,10 +269,10 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j.ok){ document.getElementById("upd").textContent = "密碼不正確，請確認看板網址"; return; }
-        AM = {}; PM = {}; ROWS = j.rows;
+        AM = {}; PM = {}; var SEEN1 = {}; ROWS = j.rows.filter(function(r){ var k = String(r[0]); if (SEEN1[k]) return false; SEEN1[k] = 1; return true; });
         if (!LOADED) ROWS.forEach(function(r){ SEEN[String(r[0]) + "@" + r[1]] = 1; });   // 第一次打開時的舊資料不標新
         LOADED = true;
-        j.rows.forEach(function(r){ var id = String(r[0]); if (/#pm$/.test(id)) PM[id.slice(0,-3)] = r[1]; else AM[id] = r[1]; });
+        j.rows.forEach(function(r){ var id = String(r[0]), M = /#pm$/.test(id) ? PM : AM, k = id.replace(/#pm$/,""); if (!M[k]) M[k] = r[1]; });   // 重複的只留最早一筆
         document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　" + (S==="am" ? "點單位看名單" : "點組別看名單");
         render();
       })
