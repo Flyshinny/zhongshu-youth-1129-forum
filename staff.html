@@ -60,6 +60,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .row.no .t{color:#c0392b}.row.yes .t{color:var(--ok)}
 .lead{font-size:11px;font-weight:800;background:#ffe9b8;color:#8A5410;border-radius:999px;padding:1px 7px}
 .dgrid{padding:10px 12px;background:#fbfaf6}
+.dh0{padding:14px;text-align:center;color:var(--sub);font-size:15px;border-top:1px solid #e3e8ec}
 .list h3.dh{margin:0;font-size:15px;padding:8px 14px;background:#eef3f7;color:var(--navy);border-top:1px solid #e3e8ec}
 .msg{padding:40px 20px;text-align:center;color:var(--sub);line-height:1.8}
 .testtag{background:#c0392b;color:#fff;font-size:12px;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:3px}
@@ -169,12 +170,14 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     if (sel === "全真") {                                // 全真：先列各區報到情況，再依區分段列名單
       var DS = {}; UN[sel].forEach(function(p){ var d = p[1].split("・")[1] || "未分區"; (DS[d] = DS[d] || []).push(p); });
       var DK = Object.keys(DS).sort(function(a,b){ return (a==="未分區") - (b==="未分區") || DS[b].length - DS[a].length; });
-      L.innerHTML = "<div class='list'><h2>全真・各區報到情況（點區名跳到名單）</h2><div class='grid dgrid'>"+
+      if (DSEL && !DS[DSEL]) DSEL = null;
+      L.innerHTML = "<div class='list'><h2>全真・各區報到情況（點區看名單）</h2><div class='grid dgrid'>"+
         DK.map(function(d){ var m = DS[d], c = m.filter(function(p){ return done[pid(p)]; }).length;
-          return "<div class='g"+(c===m.length?" full":"")+"' data-d='"+esc(d)+"'><b>"+esc(d)+"</b><span>"+c+"</span><small>/"+m.length+"</small>"+
+          return "<div class='g"+(c===m.length?" full":"")+(d===DSEL?" on":"")+"' data-d='"+esc(d)+"'><b>"+esc(d)+"</b><span>"+c+"</span><small>/"+m.length+"</small>"+
                  "<div class='mini'><i style='width:"+(100*c/m.length).toFixed(0)+"%'></i></div></div>"; }).join("")+"</div>"+
-        DK.map(function(d){ var m = DS[d], c = m.filter(function(p){ return done[pid(p)]; }).length;
-          return "<h3 class='dh' id='dh_"+esc(d)+"'>"+esc(d)+"　"+c+"/"+m.length+"（未到的排前面）</h3>"+rows(m); }).join("")+"</div>";
+        (DSEL ? (function(){ var m = DS[DSEL], c = m.filter(function(p){ return done[pid(p)]; }).length;
+          return "<h3 class='dh' id='dh'>全真・"+esc(DSEL)+"　"+c+"/"+m.length+"（未到的排前面）</h3>"+rows(m); })()
+          : "<div class='dh0'>👆 點上方的區，看該區名單</div>")+"</div>";
       return;
     }
     L.innerHTML = "<div class='list'><h2>"+esc(sel)+"（未到的排前面）</h2>"+rows(UN[sel])+"</div>";
@@ -227,9 +230,9 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   }
   document.getElementById("tabs").addEventListener("click", function(e){ var t = e.target.getAttribute("data-t"); if (t!=null){ cur = +t; sel = null; render(); } });
   // ---- 補登：工作人員確認本人已到場，直接幫他報到（先跳確認視窗）----
-  var FIXP = null, FIXS = null;
+  var FIXP = null, FIXS = null, DSEL = null;   // DSEL：全真目前點開的區
   document.getElementById("list").addEventListener("click", function(e){
-    var dd = e.target.closest("[data-d]"); if (dd){ var t = document.getElementById("dh_" + dd.getAttribute("data-d")); if (t) t.scrollIntoView({behavior:"smooth"}); return; }
+    var dd = e.target.closest("[data-d]"); if (dd){ DSEL = dd.getAttribute("data-d"); render(); var t = document.getElementById("dh"); if (t) t.scrollIntoView({behavior:"smooth", block:"nearest"}); return; }
     var b = e.target.closest(".fix"); if (!b) return;
     FIXP = P[+b.getAttribute("data-fix")]; FIXS = S;
     var where = FIXP[3]==="工作組" ? "工作人員・"+FIXP[1] : whereOf(FIXP);
