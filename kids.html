@@ -100,10 +100,10 @@ h2 span{font-weight:600}
     R[c].kids.forEach(function(p){ out.push({id:p.id, n:p.n, u:p.u, role:"學員", sb:[p.s, p.a ? (/^\d+$/.test(p.a) ? p.a + "歲" : p.a) : "", p.g].filter(Boolean).join(" ") + (p.p ? "　家長 " + p.p + (p.r ? "（" + p.r + "）" : "") : "")}); });
     Object.keys(ST).forEach(function(id){
       var s = ST[id];
-      if (id.indexOf(c + "X") === 0) out.push({id:id, n:s[2], u:s[3], role:"學員", sb:"臨時加入", x:1});
+      if (id.indexOf(c + "X") === 0 && (s[0] || PEND[id])) out.push({id:id, n:s[2], u:s[3], role:"學員", sb:"臨時加入", x:1});
     });
     var t = R[c].tch.map(function(p){ return {id:p.id, n:p.n, u:"", role:"師資", sb:p.note || "", t:1}; });
-    Object.keys(ST).forEach(function(id){ var s = ST[id]; if (id.indexOf(c + "Y") === 0) t.push({id:id, n:s[2], u:s[3], role:"師資", sb:"臨時加入", t:1, x:1}); });
+    Object.keys(ST).forEach(function(id){ var s = ST[id]; if (id.indexOf(c + "Y") === 0 && (s[0] || PEND[id])) t.push({id:id, n:s[2], u:s[3], role:"師資", sb:"臨時加入", t:1, x:1}); });
     return {k:out, t:t};
   }
   function on(id){ return PEND[id] ? PEND[id].on : !!(ST[id] && ST[id][0]); }
@@ -146,7 +146,7 @@ h2 span{font-weight:600}
   function send(x, val, tries){
     PEND[x.id] = {on:val}; render();
     apiPost({id:x.id, on:val, cls:x.id.slice(0,2), name:x.n, unit:x.u, role:x.role, note:x.x ? "臨時加入" : ""}).then(function(r){
-      if (r.ok) { ST[x.id] = [val?1:0, r.time, x.n, x.u, NAMES[x.id.slice(0,2)], x.role]; delete PEND[x.id]; render(); toast((val ? "✓ " + x.n + " 已報到" : x.n + " 已取消報到")); }
+      if (r.ok) { ST[x.id] = [val?1:0, r.time, x.n, x.u, NAMES[x.id.slice(0,2)], x.role]; delete PEND[x.id]; render(); toast((val ? "✓ " + x.n + " 已報到" : x.n + (x.x ? " 已取消並移出名單" : " 已取消報到"))); }
       else if (r.msg === "busy" && (tries||0) < 4) setTimeout(function(){ send(x, val, (tries||0)+1); }, 1500);
       else { delete PEND[x.id]; render(); toast(r.msg === "key" ? "密碼錯誤，請用班導師連結開啟" : "沒有送出，請再按一次", 3500); }
     }).catch(function(){
