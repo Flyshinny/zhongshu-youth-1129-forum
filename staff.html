@@ -78,6 +78,15 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .row .fix.big{font-size:14px;padding:5px 12px;background:var(--amber);color:#fff;border-color:var(--amber)}
 .msg{padding:40px 20px;text-align:center;color:var(--sub);line-height:1.8}
 .testtag{background:#c0392b;color:#fff;font-size:12px;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:3px}
+.kids{margin:12px 12px 0;background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(29,66,98,.12);overflow:hidden}
+.kids h3{margin:0;font-size:14px;padding:8px 14px;background:#fbe9df;color:#9a4a26;display:flex;justify-content:space-between}
+.kids .kg{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px}
+.kids .kc{border:2px solid #e8edf1;border-radius:12px;padding:8px 10px;cursor:pointer;background:#fff}
+.kids .kc.on{border-color:var(--amber)}.kids .kc.full{border-color:var(--ok);background:#e9f6ee}
+.kids .kc b{display:block;font-size:16px;color:var(--kc)}.kids .kc span{font-size:26px;font-weight:900}.kids .kc small{font-size:13px;color:var(--sub)}
+.kids .kc em{display:block;font-style:normal;font-size:12px;color:var(--sub);margin-top:2px}
+.kids .kl h4{margin:0;font-size:14px;padding:7px 14px;background:#eef3f7;color:var(--navy);border-top:1px solid #e3e8ec}
+.kids .none{padding:10px 14px;color:var(--sub);font-size:14px}
 </style>
 </head>
 <body>
@@ -97,6 +106,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   </div>
 </div>
 <div class="recent" id="recent"></div>
+<div class="kids" id="kids" hidden></div>
 <div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
 <div id="list"></div>
@@ -391,6 +401,48 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   if (!/^https:/.test(GAS)) { document.body.insertAdjacentHTML("beforeend","<div class='msg'>報到服務尚未設定</div>"); render(); return; }
   if (!K) { document.body.innerHTML = "<div class='msg'>這是工作人員專用頁面。<br>請使用完整的看板網址開啟。</div>"; return; }
   render(); load(); setInterval(load, 30000);
+})();
+</script>
+<script>
+// 兒童班・幼幼班 報到狀況（只能看；點名請班導師用 kids.html）
+(function(){
+  var GAS = "https://script.google.com/macros/s/AKfycbzOuOQhiTAeQQUUeCzT0Ze0qCdCrCwGMckL9XiDljPgSxCSvUHuRdCBXRFL-fKpfZ4/exec", K = (location.hash.match(/k=([^&]+)/)||[])[1], TEST = /[?&]test=1/.test(location.search);
+  var NM = {yy:"幼幼班", gs:"兒童班"}, KC = {yy:"#C9663A", gs:"#1D4262"}, R = null, ST = {}, sel = null, NOW = "";
+  var box = document.getElementById("kids");
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function on(id){ return !!(ST[id] && ST[id][0]); }
+  function ppl(c){
+    var k = R[c].kids.map(function(p){ return {id:p.id, n:p.n, u:p.u, s:(p.p ? "家長 " + p.p : "")}; }), t = R[c].tch.map(function(p){ return {id:p.id, n:p.n, u:"", s:p.note || ""}; });
+    Object.keys(ST).forEach(function(id){ var s = ST[id]; if (!s[0]) return;
+      if (id.indexOf(c + "X") === 0) k.push({id:id, n:s[2], u:s[3], s:"臨時加入"});
+      if (id.indexOf(c + "Y") === 0) t.push({id:id, n:s[2], u:s[3], s:"臨時加入"}); });
+    return {k:k, t:t};
+  }
+  function cnt(a){ return a.filter(function(x){ return on(x.id); }).length; }
+  function rows(a){
+    return a.slice().sort(function(x, y){ return on(x.id) - on(y.id); }).map(function(x){ var o = on(x.id);
+      return "<div class='row " + (o ? "yes" : "no") + "'><span>" + esc(x.n) + "</span><span class='u'>" + esc([x.u, x.s].filter(Boolean).join("・")) + "</span><span class='t'>" + (o ? "✓ " + esc(ST[x.id][1]) : "未到") + "</span></div>"; }).join("");
+  }
+  function render(){
+    if (!R) return;
+    var h = "<h3><span>🧒 兒童班・幼幼班 報到狀況</span><span>" + NOW + " 更新</span></h3><div class='kg'>";
+    ["yy", "gs"].forEach(function(c){ var P = ppl(c), n = cnt(P.k);
+      h += "<div class='kc" + (n === P.k.length && n ? " full" : "") + (sel === c ? " on" : "") + "' data-kc='" + c + "' style='--kc:" + KC[c] + "'><b>" + NM[c] + "</b><span>" + n + "</span><small>／" + P.k.length + " 位學員</small>" +
+           "<em>師資 " + cnt(P.t) + "／" + P.t.length + "　" + (sel === c ? "▲ 收起" : "▼ 點開看名單") + "</em></div>"; });
+    h += "</div>";
+    if (sel) { var P = ppl(sel);
+      h += "<div class='kl'><h4>" + NM[sel] + "學員（未到的排前面）</h4>" + rows(P.k) + (P.t.length ? "<h4>" + NM[sel] + "師資</h4>" + rows(P.t) : "") + "</div>"; }
+    box.innerHTML = h; box.hidden = false;
+  }
+  box.addEventListener("click", function(e){ var c = e.target.closest("[data-kc]"); if (!c) return; sel = sel === c.dataset.kc ? null : c.dataset.kc; render(); });
+  function load(){
+    fetch(GAS + "?action=kids&k=" + encodeURIComponent(K) + (TEST ? "&test=1" : "")).then(function(r){ return r.json(); }).then(function(j){
+      if (!j.ok || !j.roster) return;   // 後端還沒更新或密碼不對：整區不顯示
+      R = j.roster; ST = j.st || {}; NOW = j.now; render();
+    }).catch(function(){});
+  }
+  if (!K || !/^https:/.test(GAS)) return;
+  load(); setInterval(load, 30000);
 })();
 </script>
 </body>
