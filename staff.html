@@ -66,6 +66,16 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .dgrid{padding:10px 12px;background:#fbfaf6}
 .dh0{padding:14px;text-align:center;color:var(--sub);font-size:15px;border-top:1px solid #e3e8ec}
 .list h3.dh{margin:0;font-size:15px;padding:8px 14px;background:#eef3f7;color:var(--navy);border-top:1px solid #e3e8ec}
+.man{margin:12px 12px 0}
+#manBtn{width:100%;border:0;border-radius:14px;background:var(--amber);color:#fff;font:inherit;font-size:18px;font-weight:900;padding:11px 10px;cursor:pointer;box-shadow:0 3px 0 #b86f12;display:flex;flex-direction:column;align-items:center;gap:1px}
+#manBtn small{font-size:12px;font-weight:700;opacity:.9}
+#manBox{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(29,66,98,.12);overflow:hidden;margin-top:8px}
+.mq{display:flex;gap:8px;padding:10px}
+.mq input{flex:1;font:inherit;font-size:18px;padding:9px 12px;border:2px solid var(--navy);border-radius:10px;outline:none;min-width:0}
+.mq button{border:0;background:#e8edf1;border-radius:10px;font:inherit;font-weight:800;padding:0 12px;cursor:pointer}
+#manRes .row b{font-size:17px}
+#manRes .hint2{padding:8px 14px 12px;color:var(--sub);font-size:14px}
+.row .fix.big{font-size:14px;padding:5px 12px;background:var(--amber);color:#fff;border-color:var(--amber)}
 .msg{padding:40px 20px;text-align:center;color:var(--sub);line-height:1.8}
 .testtag{background:#c0392b;color:#fff;font-size:12px;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:3px}
 </style>
@@ -79,6 +89,13 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   <div class="upd" id="upd">讀取中…</div>
   <div class="upd" id="mode"></div>
 </header>
+<div class="man">
+  <button id="manBtn">✋ 手動報到<small>幫不會用手機、共用手機的人報到</small></button>
+  <div id="manBox" hidden>
+    <div class="mq"><input id="manQ" type="search" placeholder="輸入姓名（至少 2 個字）" autocomplete="off" autocorrect="off" spellcheck="false"><button id="manX" aria-label="收起">收起</button></div>
+    <div id="manRes"></div>
+  </div>
+</div>
 <div class="recent" id="recent"></div>
 <div class="tabs" id="tabs"></div>
 <div class="grid" id="grid"></div>
@@ -89,7 +106,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   <div class="db"><button id="xNo">取消</button><button id="xYes" class="red">下一步</button></div>
 </div></div>
 <div class="mask" id="mask"><div class="dlg">
-  <div class="dt">確定要補登嗎？</div>
+  <div class="dt" id="dT">確定要補登嗎？</div>
   <div class="dw" id="dw"></div>
   <div class="db"><button id="dNo">取消</button><button id="dYes" class="yes">確定補登</button></div>
 </div></div>
@@ -200,6 +217,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     document.getElementById("of").textContent = "／ " + total + " 人已報到";
     document.getElementById("bar").style.width = (100*n/total).toFixed(1) + "%";
     renderRecent();
+    if (manOpen) manRender();
     if (S === "am") { renderUnits(); return; }
     // 下午論壇：分頁＝全部論壇(-1)／高峰(0)／人才(1)／開創(2)／工作組(3)；論壇分頁不含工作組
     function cnt(a){ return a.filter(function(p){ return done[pid(p)]; }).length; }
@@ -240,17 +258,41 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   document.getElementById("tabs").addEventListener("click", function(e){ var t = e.target.getAttribute("data-t"); if (t!=null){ cur = +t; sel = null; render(); } });
   // ---- 補登：工作人員確認本人已到場，直接幫他報到（先跳確認視窗）----
   var FIXP = null, FIXS = null, DSEL = null;   // DSEL：全真目前點開的區
-  document.getElementById("list").addEventListener("click", function(e){
-    var xb = e.target.closest(".del"); if (xb){ openDel(P[+xb.getAttribute("data-del")]); return; }
+  function onListClick(e){
+    var xb = e.target.closest(".del"); if (xb){ openDel(P[+xb.getAttribute("data-del")], xb.getAttribute("data-ds")); return; }
     var dd = e.target.closest("[data-d]"); if (dd){ DSEL = dd.getAttribute("data-d"); render(); var t = document.getElementById("dh"); if (t) t.scrollIntoView({behavior:"smooth", block:"nearest"}); return; }
     var b = e.target.closest(".fix"); if (!b) return;
-    FIXP = P[+b.getAttribute("data-fix")]; FIXS = S;
+    FIXP = P[+b.getAttribute("data-fix")]; FIXS = b.getAttribute("data-fs") || S;
+    var MAN = b.classList.contains("big");
+    document.getElementById("dT").textContent = MAN ? "確定要幫他手動報到嗎？" : "確定要補登嗎？";
     var where = FIXP[3]==="工作組" ? "工作人員・"+FIXP[1] : whereOf(FIXP);
     document.getElementById("dw").innerHTML = "<b>"+esc(FIXP[0])+"</b>"+esc(FIXP[3]==="工作組"?"":FIXP[1]+"・")+esc(where)+
-      "<br>補登為 <em style='background:"+(FIXS==="pm"?"#2E6B55":"#1D4262")+"'>"+(FIXS==="pm"?"論壇報到":"主場報到")+"</em>";
-    document.getElementById("dYes").disabled = false; document.getElementById("dYes").textContent = "確定補登";
+      "<br>"+(MAN?"報到為":"補登為")+" <em style='background:"+(FIXS==="pm"?"#2E6B55":"#1D4262")+"'>"+(FIXS==="pm"?"論壇報到":"主場報到")+"</em>";
+    document.getElementById("dYes").disabled = false; document.getElementById("dYes").textContent = MAN ? "確定報到" : "確定補登";
     document.getElementById("mask").classList.add("on");
-  });
+  }
+  document.getElementById("list").addEventListener("click", onListClick);
+  document.getElementById("manRes").addEventListener("click", onListClick);
+  // ---- 手動報到：輸入姓名 → 列出符合的人 → 按「手動報到」→ 確認 ----
+  var manOpen = false;
+  function manRender(){
+    var box = document.getElementById("manRes"), key = document.getElementById("manQ").value.replace(/[\s　]/g, "");
+    if (key.length < 2) { box.innerHTML = "<div class='hint2'>輸入要報到的人的姓名，例如「王小明」。目前是「<b>"+(S==="pm"?"論壇報到":"主場報到")+"</b>」時段。</div>"; return; }
+    var hit = P.filter(function(p){ return p[0].indexOf(key) >= 0; }).slice(0, 20);
+    if (!hit.length) { box.innerHTML = "<div class='hint2'>找不到「"+esc(key)+"」，請確認姓名用字</div>"; return; }
+    box.innerHTML = hit.map(function(p){
+      var fs = isDT(p) ? "am" : S, t = (fs==="pm" ? PM : AM)[pid(p)], lab = fs==="pm" ? "論壇" : "主場";
+      var u = p[3]==="工作組" ? "工作人員・"+p[1] : p[1]+"・"+whereOf(p);
+      return "<div class='row "+(t?"yes":"no")+"'><b>"+esc(p[0])+"</b><span class='u'>"+esc(u)+"</span>"+
+        (t ? "<button class='del' data-del='"+p.i+"' data-ds='"+fs+"'>刪除</button><span class='t'>✓ "+lab+" "+esc(t)+"</span>"
+           : "<button class='fix big' data-fix='"+p.i+"' data-fs='"+fs+"'>手動報到（"+lab+"）</button>")+"</div>";
+    }).join("");
+  }
+  document.getElementById("manBtn").addEventListener("click", function(){
+    manOpen = !manOpen; document.getElementById("manBox").hidden = !manOpen;
+    if (manOpen) { manRender(); document.getElementById("manQ").focus(); } });
+  document.getElementById("manX").addEventListener("click", function(){ manOpen = false; document.getElementById("manBox").hidden = true; document.getElementById("manQ").value = ""; });
+  document.getElementById("manQ").addEventListener("input", manRender);
   function closeDlg(){ document.getElementById("mask").classList.remove("on"); FIXP = null; }
   // ---- 刪除報到：兩段確認（第二段倒數 3 秒才可按），刪除紀錄保留在試算表 ----
   var DELP = null, DELS = null, XSTEP = 0, XCD = null;
@@ -259,11 +301,11 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     return "<b>"+esc(p[0])+"</b>"+esc(p[3]==="工作組"?"":p[1]+"・")+esc(where)+
       "<br><em style='background:"+(s==="pm"?"#2E6B55":"#1D4262")+"'>"+(s==="pm"?"論壇報到":"主場報到")+"</em>　✓ "+esc(t||"");
   }
-  function openDel(p){
-    DELP = p; DELS = S; XSTEP = 1; clearInterval(XCD);
+  function openDel(p, ds){
+    DELP = p; DELS = ds || S; XSTEP = 1; clearInterval(XCD);
     document.getElementById("xD").className = "dlg";
     document.getElementById("xT").textContent = "確定要刪除這筆報到嗎？";
-    document.getElementById("xW").innerHTML = delInfo(p, S);
+    document.getElementById("xW").innerHTML = delInfo(p, DELS);
     var y = document.getElementById("xYes"); y.disabled = false; y.textContent = "下一步"; y.className = "yes";
     document.getElementById("mask2").classList.add("on");
   }
