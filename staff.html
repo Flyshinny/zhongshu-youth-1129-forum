@@ -331,7 +331,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j.ok) throw j.msg || 0;
-        delete (s==="pm" ? PM : AM)[pid(p)];
+        delete (s==="pm" ? PM : AM)[pid(p)];  ovSet(id, null);
         ROWS = ROWS.filter(function(r){ return String(r[0]) !== id; });
         closeDel(); render();
         var t = document.getElementById("toast"); t.textContent = "🗑 已刪除 " + p[0] + " 的" + (s==="pm" ? "論壇" : "主場") + "報到";
@@ -350,7 +350,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
       .then(function(r){ return r.json(); })
       .then(function(j){
         if (!j.ok) throw 0;
-        (s==="pm" ? PM : AM)[pid(p)] = j.time; ROWS.push([id, j.time]); SEEN[id + "@" + j.time] = 1;
+        (s==="pm" ? PM : AM)[pid(p)] = j.time; ROWS.push([id, j.time]); SEEN[id + "@" + j.time] = 1;  ovSet(id, j.time);
         closeDlg(); render();
         var t = document.getElementById("toast"); t.textContent = "✓ " + p[0] + (j.already ? " 之前已報到 " : " 已補登 ") + j.time;
         t.style.display = "block"; setTimeout(function(){ t.style.display = "none"; }, 2500);
@@ -361,6 +361,18 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     var ov = e.target.closest(".ov"); if (ov){ cur = +ov.getAttribute("data-ov"); sel = null; render(); return; }
     var el = e.target.closest(".g"); if (el){ sel = el.getAttribute("data-g"); render(); document.getElementById("list").scrollIntoView({behavior:"smooth"}); } });
 
+  // 本機暫存：這台看板剛做的報到／刪除，60 秒內優先顯示，避免重新整理時因伺服器快取看到舊資料
+  var OV_KEY = "staffov:" + (TEST ? "t" : "p");
+  function ovGet(){ try { var o = JSON.parse(localStorage.getItem(OV_KEY) || "{}"), now = Date.now(), c = {}; for (var k in o) if (o[k].x > now) c[k] = o[k]; return c; } catch(e){ return {}; } }
+  function ovSet(id, t){ var o = ovGet(); o[id] = {t:t, x:Date.now() + 60000}; try { localStorage.setItem(OV_KEY, JSON.stringify(o)); } catch(e){} }
+  function ovApply(){
+    var o = ovGet();
+    for (var id in o) {
+      var M = /#pm$/.test(id) ? PM : AM, k = id.replace(/#pm$/, "");
+      if (o[id].t) { if (!M[k]) { M[k] = o[id].t; if (!ROWS.some(function(r){ return String(r[0])===id; })) ROWS.push([id, o[id].t]); } }
+      else { delete M[k]; ROWS = ROWS.filter(function(r){ return String(r[0])!==id; }); }
+    }
+  }
   function load(){
     fetch(GAS + "?action=list&k=" + encodeURIComponent(K) + (TEST?"&test=1":""))
       .then(function(r){ return r.json(); })
@@ -370,6 +382,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
         if (!LOADED) ROWS.forEach(function(r){ SEEN[String(r[0]) + "@" + r[1]] = 1; });   // 第一次打開時的舊資料不標新
         LOADED = true;
         j.rows.forEach(function(r){ var id = String(r[0]), M = /#pm$/.test(id) ? PM : AM, k = id.replace(/#pm$/,""); if (!M[k]) M[k] = r[1]; });   // 重複的只留最早一筆
+        ovApply();   // 疊上這台看板 60 秒內自己做的報到／刪除（伺服器讀取有 10 秒快取）
         document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　" + (S==="am" ? "點單位看名單" : "點組別看名單");
         render();
       })
