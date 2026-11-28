@@ -16,7 +16,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .big b{font-size:40px;line-height:1}.big span{font-size:16px;opacity:.85}
 .bar{height:8px;border-radius:8px;background:rgba(255,255,255,.2);margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--amber)}
 .upd{font-size:12px;opacity:.75;margin-top:6px}
-.sw{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;margin-bottom:10px}
+.sw{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;margin-bottom:10px}
 .sw a{color:#fff;text-decoration:none;text-align:center;font-weight:800;font-size:15px;padding:7px 0;border-radius:9px;opacity:.75}
 .g .mini{height:5px;border-radius:5px;background:#e8edf1;margin-top:5px;overflow:hidden}.g .mini i{display:block;height:100%;background:var(--amber)}
 .g.full .mini i{background:var(--ok)}
@@ -78,7 +78,9 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 .row .fix.big{font-size:14px;padding:5px 12px;background:var(--amber);color:#fff;border-color:var(--amber)}
 .msg{padding:40px 20px;text-align:center;color:var(--sub);line-height:1.8}
 .testtag{background:#c0392b;color:#fff;font-size:12px;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:3px}
-.kids{margin:12px 12px 0;background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(29,66,98,.12);overflow:hidden}
+body:not(.kidsmode) #kids{display:none}
+body.kidsmode .man,body.kidsmode #recent,body.kidsmode #tabs,body.kidsmode #grid,body.kidsmode #list{display:none}
+.kids{margin:12px 12px 24px;background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(29,66,98,.12);overflow:hidden}
 .kids h3{margin:0;font-size:14px;padding:8px 14px;background:#fbe9df;color:#9a4a26;display:flex;justify-content:space-between}
 .kids .kg{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px}
 .kids .kc{border:2px solid #e8edf1;border-radius:12px;padding:8px 10px;cursor:pointer;background:#fff}
@@ -91,7 +93,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
 </head>
 <body>
 <header>
-  <div class="sw"><a id="swAM" href="#">🏛️ 主場報到</a><a id="swPM" href="#">💬 論壇報到</a></div>
+  <div class="sw"><a id="swAM" href="#">🏛️ 主場報到</a><a id="swPM" href="#">💬 論壇報到</a><a id="swKD" href="#">🧒 小朋友班報到</a></div>
   <h1 id="h1">11/29 報到看板<span id="tt"></span></h1>
   <div class="big"><b id="n">–</b><span id="of">／ – 人已報到</span></div>
   <div class="bar"><i id="bar" style="width:0"></i></div>
@@ -137,12 +139,14 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   function autoS(){ var m = nowMin(); return (m>=720 && m<870) ? "pm" : "am"; }
   var S = "am", AUTO = true;
   function setS(){
-    var h = location.hash.match(/[#&]s=(am|pm)/);
+    var h = location.hash.match(/[#&]s=(am|pm|kids)/);
     AUTO = !h; S = h ? h[1] : autoS();
     document.getElementById("swAM").href = "#k=" + K + "&s=am"; document.getElementById("swPM").href = "#k=" + K + "&s=pm";
     document.getElementById("swAM").className = S==="am" ? "on" : ""; document.getElementById("swPM").className = S==="pm" ? "on" : "";
-    document.documentElement.style.setProperty("--hd", S==="pm" ? "#2E6B55" : "#1D4262");
-    document.getElementById("h1").firstChild.nodeValue = S==="pm" ? "論壇報到（各論壇樓層）" : "主場報到（8 樓）";
+    document.getElementById("swKD").href = "#k=" + K + "&s=kids"; document.getElementById("swKD").className = S==="kids" ? "on" : "";
+    document.body.classList.toggle("kidsmode", S==="kids");
+    document.documentElement.style.setProperty("--hd", S==="kids" ? "#C9663A" : S==="pm" ? "#2E6B55" : "#1D4262");
+    document.getElementById("h1").firstChild.nodeValue = S==="kids" ? "小朋友班報到（幼幼班・國小班）" : S==="pm" ? "論壇報到（各論壇樓層）" : "主場報到（8 樓）";
     document.getElementById("mode").innerHTML = AUTO ? "⏱ 依時間自動切換（12:00 切到論壇、14:30 切回主場）"
       : "✋ 手動檢視中　<a href='#k=" + K + "'>改回自動切換</a>";
   }
@@ -220,6 +224,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
   }
 
   function render(){
+    if (S === "kids") { if (window.kidsRender) window.kidsRender(); return; }   // 小朋友班頁由下方程式負責
     done = S==="pm" ? PM : AM;
     var ALL = S==="pm" ? P.filter(function(p){ return !isDT(p); }) : P;
     var total = ALL.length, n = ALL.filter(function(p){ return done[pid(p)]; }).length;
@@ -393,7 +398,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
         LOADED = true;
         j.rows.forEach(function(r){ var id = String(r[0]), M = /#pm$/.test(id) ? PM : AM, k = id.replace(/#pm$/,""); if (!M[k]) M[k] = r[1]; });   // 重複的只留最早一筆
         ovApply();   // 疊上這台看板 60 秒內自己做的報到／刪除（伺服器讀取有 10 秒快取）
-        document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　" + (S==="am" ? "點單位看名單" : "點組別看名單");
+        if (S !== "kids") document.getElementById("upd").textContent = "最後更新 " + j.now + "　每 30 秒自動更新　" + (S==="am" ? "點單位看名單" : "點組別看名單");
         render();
       })
       .catch(function(){ document.getElementById("upd").textContent = "連線失敗，30 秒後重試"; });
@@ -433,7 +438,14 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     if (sel) { var P = ppl(sel);
       h += "<div class='kl'><h4>" + NM[sel] + "學員（未到的排前面）</h4>" + rows(P.k) + (P.t.length ? "<h4>" + NM[sel] + "師資</h4>" + rows(P.t) : "") + "</div>"; }
     box.innerHTML = h; box.hidden = false;
+    if (document.body.classList.contains("kidsmode")) {
+      var a = ppl("yy").k.concat(ppl("gs").k), n = cnt(a);
+      document.getElementById("n").textContent = n; document.getElementById("of").textContent = "／ " + a.length + " 位小朋友已報到";
+      document.getElementById("bar").style.width = (a.length ? 100 * n / a.length : 0).toFixed(1) + "%";
+      document.getElementById("upd").textContent = "最後更新 " + NOW + "　每 30 秒自動更新　點班別看名單（點名請班導師用點名頁）";
+    }
   }
+  window.kidsRender = function(){ if (R) render(); else { document.getElementById("n").textContent = "–"; document.getElementById("of").textContent = "／ – 位小朋友已報到"; document.getElementById("upd").textContent = "讀取中…"; } };
   box.addEventListener("click", function(e){ var c = e.target.closest("[data-kc]"); if (!c) return; sel = sel === c.dataset.kc ? null : c.dataset.kc; render(); });
   function load(){
     fetch(GAS + "?action=kids&k=" + encodeURIComponent(K) + (TEST ? "&test=1" : "")).then(function(r){ return r.json(); }).then(function(j){
