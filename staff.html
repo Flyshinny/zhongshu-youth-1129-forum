@@ -428,7 +428,7 @@ header h1{margin:0;font-size:19px;letter-spacing:1px}
     var h = "<h3><span>🧒 兒童班・幼幼班 報到狀況</span><span>" + NOW + " 更新</span></h3><div class='kg'>";
     ["yy", "gs"].forEach(function(c){ var P = ppl(c), n = cnt(P.k);
       h += "<div class='kc" + (n === P.k.length && n ? " full" : "") + (sel === c ? " on" : "") + "' data-kc='" + c + "' style='--kc:" + KC[c] + "'><b>" + NM[c] + "</b><span>" + n + "</span><small>／" + P.k.length + " 位學員</small>" +
-           "<em>師資 " + cnt(P.t) + "／" + P.t.length + "　" + (sel === c ? "▲ 收起" : "▼ 點開看名單") + "</em></div>"; });
+           "<em>師資 " + cnt(P.t) + "／" + P.t.length + "</em><em>" + (sel === c ? "▲ 收起名單" : "▼ 點開看名單") + "</em></div>"; });
     h += "</div>";
     if (sel) { var P = ppl(sel);
       h += "<div class='kl'><h4>" + NM[sel] + "學員（未到的排前面）</h4>" + rows(P.k) + (P.t.length ? "<h4>" + NM[sel] + "師資</h4>" + rows(P.t) : "") + "</div>"; }
